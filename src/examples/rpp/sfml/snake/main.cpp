@@ -36,7 +36,9 @@ static auto get_events_observable(sf::RenderWindow& window)
 int main()
 {
     auto             window_size = get_window_size(s_rows_count, s_columns_count);
-    sf::RenderWindow window(sf::VideoMode(window_size.x, window_size.y), "Snake");
+    // sf::RenderWindow window(sf::VideoMode(window_size.x, window_size.y), "Snake");
+    sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
+    sf::RenderWindow window(sf::VideoMode(window_size.x, window_size.y, desktop.bitsPerPixel), "Snake");
 
     const auto events   = get_events_observable(window) | rpp::ops::publish();
     const auto presents = get_presents_stream(events);
