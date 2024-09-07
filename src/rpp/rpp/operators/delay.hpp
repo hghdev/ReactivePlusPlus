@@ -45,16 +45,11 @@ namespace rpp::operators::details
             , worker{std::move(in_worker)}
             , delay{delay}
         {
-            if constexpr (!Worker::is_none_disposable)
-            {
-                if (auto d = worker.get_disposable(); !d.is_disposed())
-                    rpp::composite_disposable_impl<Container>::add(std::move(d));
-            }
         }
 
-        Observer                     observer;
-        RPP_NO_UNIQUE_ADDRESS Worker worker;
-        rpp::schedulers::duration    delay;
+        RPP_NO_UNIQUE_ADDRESS Observer observer;
+        RPP_NO_UNIQUE_ADDRESS Worker   worker;
+        rpp::schedulers::duration      delay;
 
         std::mutex              mutex{};
         std::queue<emission<T>> queue;
@@ -186,7 +181,7 @@ namespace rpp::operators::details
         auto lift_with_disposable_strategy(Observer&& observer) const
         {
             using worker_t  = rpp::schedulers::utils::get_worker_t<Scheduler>;
-            using container = typename DisposableStrategy::template add<worker_t::is_none_disposable ? 0 : 1>::disposable_container;
+            using container = typename DisposableStrategy::disposable_container;
 
             const auto disposable = disposable_wrapper_impl<delay_disposable<std::decay_t<Observer>, worker_t, container>>::make(std::forward<Observer>(observer), scheduler.create_worker(), duration);
             auto       ptr        = disposable.lock();

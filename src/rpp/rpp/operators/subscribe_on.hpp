@@ -42,20 +42,15 @@ namespace rpp::operators::details
         };
 
         template<rpp::details::observables::constraint::disposable_strategy Prev>
-        using updated_disposable_strategy = typename Prev::template add<rpp::schedulers::utils::get_worker_t<TScheduler>::is_none_disposable ? 0 : 1>;
+        using updated_disposable_strategy = Prev;
 
         RPP_NO_UNIQUE_ADDRESS TScheduler scheduler;
 
         template<rpp::constraint::observer Observer, typename... Strategies>
-        void subscribe(Observer&& observer, const observable_chain_strategy<Strategies...>& observable_strategy) const
+        void subscribe(Observer&& observer, const rpp::details::observables::chain<Strategies...>& observable_strategy) const
         {
             const auto worker = scheduler.create_worker();
-            if constexpr (!rpp::schedulers::utils::get_worker_t<TScheduler>::is_none_disposable)
-            {
-                if (auto d = worker.get_disposable(); !d.is_disposed())
-                    observer.set_upstream(std::move(d));
-            }
-            worker.schedule(subscribe_on_schedulable<observable_chain_strategy<Strategies...>>{observable_strategy}, std::forward<Observer>(observer));
+            worker.schedule(subscribe_on_schedulable<rpp::details::observables::chain<Strategies...>>{observable_strategy}, std::forward<Observer>(observer));
         }
     };
 } // namespace rpp::operators::details

@@ -1,3 +1,4 @@
+#define ANKERL_NANOBENCH_IMPLEMENT
 #include <nanobench.h>
 
 #include <rpp/rpp.hpp>
@@ -179,6 +180,17 @@ int main(int argc, char* argv[]) // NOLINT(bugprone-exception-escape)
 
             TEST_RXCPP([&]() {
                 rxcpp::observable<>::just(rxcpp::observable<>::just(1, rxcpp::identity_immediate()), rxcpp::identity_immediate()) | rxcpp::operators::concat() | rxcpp::operators::subscribe<int>([](int v) { ankerl::nanobench::doNotOptimizeAway(v); });
+            });
+        }
+
+        SECTION("concat_as_source of just(1 immediate) and just(1,2 immediate)create + subscribe")
+        {
+            TEST_RPP([&]() {
+                rpp::source::concat(rpp::source::just(rpp::schedulers::immediate{}, 1), rpp::source::just(rpp::schedulers::immediate{}, 1, 2)).subscribe([](int v) { ankerl::nanobench::doNotOptimizeAway(v); });
+            });
+
+            TEST_RXCPP([&]() {
+                rxcpp::observable<>::from(rxcpp::identity_immediate(), rxcpp::observable<>::just(1, rxcpp::identity_immediate()).as_dynamic(), rxcpp::observable<>::from(rxcpp::identity_immediate(), 1, 2).as_dynamic()) | rxcpp::operators::concat() | rxcpp::operators::subscribe<int>([](int v) { ankerl::nanobench::doNotOptimizeAway(v); });
             });
         }
 
@@ -568,6 +580,21 @@ int main(int argc, char* argv[]) // NOLINT(bugprone-exception-escape)
                     | rxcpp::operators::subscribe<int>([](int v) { ankerl::nanobench::doNotOptimizeAway(v); });
             });
         }
+
+        SECTION("immediate_just(1,2,3)+element_at(1)+subscribe")
+        {
+            TEST_RPP([&]() {
+                rpp::immediate_just(1, 2, 3)
+                    | rpp::operators::element_at(1)
+                    | rpp::operators::subscribe([](int v) { ankerl::nanobench::doNotOptimizeAway(v); });
+            });
+
+            TEST_RXCPP([&]() {
+                rxcpp::immediate_just(1, 2, 3)
+                    | rxcpp::operators::element_at(1)
+                    | rxcpp::operators::subscribe<int>([](int v) { ankerl::nanobench::doNotOptimizeAway(v); });
+            });
+        }
     }; // BENCHMARK("Filtering Operators")
 
     BENCHMARK("Utility Operators")
@@ -628,6 +655,24 @@ int main(int argc, char* argv[]) // NOLINT(bugprone-exception-escape)
                     | rxcpp::operators::subscribe<int>([](int v) { ankerl::nanobench::doNotOptimizeAway(v); });
             });
         }
+        SECTION("create(on_error())+retry(1)+subscribe")
+        {
+            TEST_RPP([&]() {
+                rpp::source::create<int>([&](auto&& observer) {
+                    observer.on_error({});
+                })
+                    | rpp::operators::retry(1)
+                    | rpp::operators::subscribe([](int) {}, [](const std::exception_ptr& e) { ankerl::nanobench::doNotOptimizeAway(e); });
+            });
+
+            TEST_RXCPP([&]() {
+                rxcpp::observable<>::create<int>([&](auto&& observer) {
+                    observer.on_error({});
+                })
+                    | rxcpp::operators::retry(1)
+                    | rxcpp::operators::subscribe<int>([](int) {}, [](const std::exception_ptr& e) { ankerl::nanobench::doNotOptimizeAway(e); });
+            });
+        }
     } // BENCHMARK("Error Handling Operators")
 
     BENCHMARK("Subjects")
@@ -646,6 +691,51 @@ int main(int argc, char* argv[]) // NOLINT(bugprone-exception-escape)
                 rxcpp_subj.get_observable().subscribe(rxcpp::make_subscriber<int>([](int v) { ankerl::nanobench::doNotOptimizeAway(v); }, [] {}));
                 TEST_RXCPP([&]() {
                     rxcpp_subj.get_subscriber().on_next(1);
+                });
+            }
+        }
+        SECTION("subscribe 100 observers to publish_subject")
+        {
+            TEST_RPP([&] {
+                rpp::subjects::publish_subject<int> s{};
+                for (size_t i = 0; i < 100; ++i)
+                {
+                    s.get_observable().subscribe(rpp::make_lambda_observer([](int v) { ankerl::nanobench::doNotOptimizeAway(v); }));
+                }
+                s.get_observer().on_next(1);
+            });
+            TEST_RXCPP([&] {
+                rxcpp::subjects::subject<int> s{};
+                for (size_t i = 0; i < 100; ++i)
+                {
+                    s.get_observable().subscribe(rxcpp::make_subscriber<int>([](int v) { ankerl::nanobench::doNotOptimizeAway(v); }));
+                }
+                s.get_subscriber().on_next(1);
+            });
+        }
+        SECTION("100 on_next to 100 observers to publish_subject")
+        {
+            {
+                rpp::subjects::publish_subject<int> rpp_subj{};
+                for (size_t i = 0; i < 100; ++i)
+                {
+                    rpp_subj.get_observable().subscribe(rpp::make_lambda_observer([](int v) { ankerl::nanobench::doNotOptimizeAway(v); }));
+                }
+                TEST_RPP([&] {
+                    for (size_t i = 0; i < 100; ++i)
+                        rpp_subj.get_observer().on_next(i);
+                });
+            }
+
+            {
+                rxcpp::subjects::subject<int> rxcpp_subj{};
+                for (size_t i = 0; i < 100; ++i)
+                {
+                    rxcpp_subj.get_observable().subscribe(rxcpp::make_subscriber<int>([](int v) { ankerl::nanobench::doNotOptimizeAway(v); }));
+                }
+                TEST_RXCPP([&] {
+                    for (size_t i = 0; i < 100; ++i)
+                        rxcpp_subj.get_subscriber().on_next(i);
                 });
             }
         }

@@ -8,7 +8,8 @@
 // Project home: https://github.com/victimsnino/ReactivePlusPlus
 //
 
-#include <snitch/snitch.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <rpp/observers/mock_observer.hpp>
 #include <rpp/operators/repeat.hpp>
@@ -17,6 +18,7 @@
 
 #include "copy_count_tracker.hpp"
 #include "disposable_observable.hpp"
+#include "rpp_trompeloil.hpp"
 
 
 TEST_CASE("repeat resubscribes")
@@ -132,5 +134,24 @@ TEST_CASE("repeat doesn't produce extra copies")
 
 TEST_CASE("repeat satisfies disposable contracts")
 {
-    test_operator_with_disposable<int>(rpp::ops::repeat());
+    test_operator_with_disposable<int>(rpp::ops::repeat(1));
+}
+
+
+TEST_CASE("repeat handles stack overflow")
+{
+    mock_observer<int>    mock{};
+    trompeloeil::sequence seq;
+
+    constexpr size_t count = 500000;
+
+    REQUIRE_CALL(*mock, on_next_rvalue(trompeloeil::_)).TIMES(count).IN_SEQUENCE(seq);
+    REQUIRE_CALL(*mock, on_completed()).IN_SEQUENCE(seq);
+
+    rpp::source::create<int>([](const auto& obs) {
+        obs.on_next(1);
+        obs.on_completed();
+    })
+        | rpp::operators::repeat(count)
+        | rpp::operators::subscribe(mock);
 }

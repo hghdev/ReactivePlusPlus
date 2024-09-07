@@ -8,7 +8,8 @@
 // Project home: https://github.com/victimsnino/ReactivePlusPlus
 //
 
-#include <snitch/snitch.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <rpp/observers/mock_observer.hpp>
 #include <rpp/schedulers/test_scheduler.hpp>
@@ -18,8 +19,8 @@
 
 TEST_CASE("timer emit single value at provided duration")
 {
-    auto scheduler  = test_scheduler{};
-    auto scheduler2 = test_scheduler{};
+    auto scheduler  = rpp::schedulers::test_scheduler{};
+    auto scheduler2 = rpp::schedulers::test_scheduler{};
     auto mock       = mock_observer_strategy<size_t>{};
     auto mock2      = mock_observer_strategy<size_t>{};
 
@@ -77,7 +78,7 @@ TEST_CASE("timer emit single value at provided duration")
 
 TEST_CASE("timer emit single value at provided time_point")
 {
-    auto scheduler = test_scheduler{};
+    auto scheduler = rpp::schedulers::test_scheduler{};
     auto mock      = mock_observer_strategy<size_t>{};
 
     SECTION("timer observable")

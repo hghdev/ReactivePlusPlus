@@ -14,7 +14,8 @@ macro(add_test_target target_name module files)
   set(TARGET ${target_name})
 
   add_executable(${TARGET} ${files})
-  target_link_libraries(${TARGET} PRIVATE snitch::snitch rpp_tests_utils ${module})
+  target_link_libraries(${TARGET} PRIVATE Catch2::Catch2WithMain trompeloeil::trompeloeil rpp_tests_utils ${module})
+  target_compile_definitions(${TARGET} PRIVATE "CATCH_CONFIG_FAST_COMPILE")
   set_target_properties(${TARGET} PROPERTIES FOLDER Tests/Suites/${module})
 
   add_test_with_coverage(${TARGET})
@@ -22,6 +23,12 @@ macro(add_test_target target_name module files)
   if (${module} STREQUAL rppqt)
     rpp_add_qt_support_to_executable(${TARGET})
   endif()
+
+  if (${module} STREQUAL rppgrpc)
+    target_link_libraries(${TARGET} PRIVATE rppgrpc_tests_proto)
+  endif()
+
+  target_compile_features(${TARGET} PRIVATE cxx_std_20)
 
   if(MSVC)
     target_compile_options(${TARGET} PRIVATE /W4 /WX /wd4702)
@@ -46,4 +53,9 @@ rpp_register_tests(rpp)
 
 if (RPP_BUILD_QT_CODE)
   rpp_register_tests(rppqt)
+endif()
+
+if (RPP_BUILD_GRPC_CODE)
+  rpp_add_proto_target(rppgrpc_tests_proto rppgrpc/proto.proto)
+  rpp_register_tests(rppgrpc)
 endif()

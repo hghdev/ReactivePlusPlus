@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <mutex>
+#include <variant>
 
 namespace rpp::utils
 {
@@ -89,19 +90,19 @@ namespace rpp::utils
         return std::all_of(std::cbegin(container), std::cend(container), fn);
     }
 
-    template<auto Fn, bool inverse = false>
+    template<auto Fn, bool Inverse = false>
         requires std::is_member_function_pointer_v<decltype(Fn)>
     struct static_mem_fn
     {
         template<typename TT>
-            requires (inverse == false && std::invocable<decltype(Fn), TT &&>)
+            requires (Inverse == false && std::invocable<decltype(Fn), TT &&>)
         auto operator()(TT&& d) const
         {
             return (std::forward<TT>(d).*Fn)();
         }
 
         template<typename TT>
-            requires (inverse == true && std::invocable<decltype(Fn), TT &&>)
+            requires (Inverse == true && std::invocable<decltype(Fn), TT &&>)
         auto operator()(TT&& d) const
         {
             return !(std::forward<TT>(d).*Fn)();
@@ -195,8 +196,8 @@ namespace rpp::utils
         iterator end() const { return {this, m_count}; }
 
     private:
-        T      m_value;
-        size_t m_count;
+        RPP_NO_UNIQUE_ADDRESS T m_value;
+        size_t                  m_count;
     };
 
     template<rpp::constraint::decayed_type T>
@@ -244,7 +245,7 @@ namespace rpp::utils
         iterator end() const { return {nullptr}; }
 
     private:
-        T m_value;
+        RPP_NO_UNIQUE_ADDRESS T m_value;
     };
 
     struct none_mutex
@@ -305,12 +306,34 @@ namespace rpp::utils
         T&          get_value_unsafe() { return m_value; }
 
     private:
-        T          m_value{};
-        std::mutex m_mutex{};
+        RPP_NO_UNIQUE_ADDRESS T m_value{};
+        std::mutex              m_mutex{};
     };
 
     template<typename T>
     using pointer_under_lock = typename value_with_mutex<T>::pointer_under_lock;
+
+    namespace details
+    {
+        template<typename T, typename... Ts>
+        struct unique_variant_t : std::type_identity<T>
+        {
+        };
+
+        template<typename... Ts, typename U, typename... Us>
+            requires (std::is_same_v<U, Ts> || ...)
+        struct unique_variant_t<std::variant<Ts...>, U, Us...> : unique_variant_t<std::variant<Ts...>, Us...>
+        {
+        };
+
+        template<typename... Ts, typename U, typename... Us>
+        struct unique_variant_t<std::variant<Ts...>, U, Us...> : public unique_variant_t<std::variant<Ts..., U>, Us...>
+        {
+        };
+    } // namespace details
+
+    template<typename... Ts>
+    using unique_variant = typename details::unique_variant_t<std::variant<>, Ts...>::type; // inspired by https://stackoverflow.com/a/57528226/17771792
 
 
 #define RPP_CALL_DURING_CONSTRUCTION(...) RPP_NO_UNIQUE_ADDRESS rpp::utils::none _ = [&]() { \

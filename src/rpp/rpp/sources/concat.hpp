@@ -12,8 +12,8 @@
 #include <rpp/sources/fwd.hpp>
 
 #include <rpp/memory_model.hpp>
-#include <rpp/observables/dynamic_observable.hpp>
 #include <rpp/observables/observable.hpp>
+#include <rpp/observables/variant_observable.hpp>
 #include <rpp/operators/details/strategy.hpp>
 #include <rpp/sources/from.hpp>
 
@@ -75,6 +75,8 @@ namespace rpp::details
         void on_completed() const
         {
             locally_disposed = true;
+            state->clear();
+
             if (state->is_inside_drain.exchange(false, std::memory_order::seq_cst))
                 return;
 
@@ -95,7 +97,6 @@ namespace rpp::details
             }
 
             using value_type = rpp::utils::extract_observable_type_t<utils::iterable_value_t<PackedContainer>>;
-            state->clear();
             state->is_inside_drain.store(true, std::memory_order::seq_cst);
             try
             {
@@ -183,7 +184,10 @@ namespace rpp::source
             return rpp::details::make_concat_from_iterable<container>(std::forward<TObservable>(obs), std::forward<TObservables>(others)...);
         }
         else
-            return concat<MemoryModel>(std::forward<TObservable>(obs).as_dynamic(), std::forward<TObservables>(others).as_dynamic()...);
+        {
+            using variant_observable_t = rpp::variant_observable<rpp::utils::extract_observable_type_t<TObservable>, std::decay_t<TObservable>, std::decay_t<TObservables>...>;
+            return concat<MemoryModel>(variant_observable_t{std::forward<TObservable>(obs)}, variant_observable_t{std::forward<TObservables>(others)}...);
+        }
     }
 
     /**

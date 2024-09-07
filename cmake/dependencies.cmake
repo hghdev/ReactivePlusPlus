@@ -1,4 +1,45 @@
-find_package(Threads REQUIRED)
+find_package(Threads)
+
+macro(rpp_handle_3rdparty TARGET_NAME)
+  get_target_property(TARGET_TYPE ${TARGET_NAME} TYPE)
+  if (${TARGET_TYPE} STREQUAL "INTERFACE_LIBRARY")
+    target_compile_options(${TARGET_NAME} INTERFACE "-w")
+  else()
+    target_compile_options(${TARGET_NAME} PRIVATE "-w")
+    set_target_properties(${TARGET_NAME} PROPERTIES CXX_CLANG_TIDY "")
+    set_target_properties(${TARGET_NAME} PROPERTIES CXX_CPPCHECK "")
+    set_target_properties(${TARGET_NAME} PROPERTIES FOLDER 3rdparty)
+  endif()
+
+  set_target_properties(${TARGET_NAME} PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES $<TARGET_PROPERTY:${TARGET_NAME},INTERFACE_INCLUDE_DIRECTORIES>)
+endmacro()
+
+macro(rpp_fetch_library_extended NAME URL TAG TARGET_NAME)
+  Include(FetchContent)
+  set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Build SHARED libraries")
+
+  Set(FETCHCONTENT_QUIET FALSE)
+
+  FetchContent_Declare(
+    ${NAME}
+    GIT_REPOSITORY ${URL}
+    GIT_TAG        ${TAG}
+    GIT_SHALLOW    TRUE
+    GIT_PROGRESS   TRUE
+    GIT_SUBMODULES ""
+  )
+
+  FetchContent_MakeAvailable(${NAME})
+  rpp_handle_3rdparty(${TARGET_NAME})
+endmacro()
+
+macro(rpp_fetch_library NAME URL TAG)
+  find_package(${NAME} QUIET)
+  if (NOT ${NAME}_FOUND)
+    message("-- RPP: Fetching ${NAME}...")
+    rpp_fetch_library_extended(${NAME} ${URL} ${TAG} ${NAME})
+  endif()
+endmacro()
 
 # ===================== SFML =======================
 if (RPP_BUILD_SFML_CODE AND RPP_BUILD_EXAMPLES)
@@ -28,65 +69,58 @@ if (RPP_BUILD_QT_CODE AND (RPP_BUILD_TESTS OR RPP_BUILD_EXAMPLES))
   endmacro()
 endif()
 
+# ========================== GRPC ====================================
+if (RPP_BUILD_GRPC_CODE AND (RPP_BUILD_TESTS OR RPP_BUILD_EXAMPLES))
+  find_package(Protobuf CONFIG REQUIRED)
+  find_package(gRPC CONFIG REQUIRED)
+
+  rpp_handle_3rdparty(gRPC::grpc++)
+  rpp_handle_3rdparty(protobuf::protobuf)
+
+  macro(rpp_add_proto_target TARGET FILES)
+    add_library(${TARGET} STATIC ${FILES})
+
+    target_link_libraries(${TARGET}
+        PUBLIC
+            gRPC::grpc++
+            protobuf::libprotobuf
+            ${grpc_LIBRARIES_TARGETS}
+    )
+
+    target_include_directories(${TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+    get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION )
+    protobuf_generate(TARGET ${TARGET} OUT_VAR PROTO_FILES LANGUAGE cpp )
+
+    protobuf_generate(
+        TARGET ${TARGET}
+        LANGUAGE grpc
+        OUT_VAR GRPC_PROTO_FILES
+        # PROTOC_OUT_DIR "${PROTO_BINARY_DIR}"
+        PLUGIN protoc-gen-grpc=${grpc_cpp_plugin_location}
+        GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc)
+
+
+    set_target_properties(${TARGET} PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES $<TARGET_PROPERTY:${TARGET},INTERFACE_INCLUDE_DIRECTORIES>)
+    set_target_properties(${TARGET} PROPERTIES CXX_CLANG_TIDY "")
+    set_target_properties(${TARGET} PROPERTIES CXX_CPPCHECK "")
+  endmacro()
+endif()
+
 # ==================== RXCPP =======================
 if (RPP_BUILD_RXCPP AND RPP_BUILD_BENCHMARKS)
   set(RXCPP_DISABLE_TESTS_AND_EXAMPLES 1)
-
-  Include(FetchContent)
-
-  FetchContent_Declare(
-    RxCpp
-    GIT_REPOSITORY https://github.com/ReactiveX/RxCpp.git
-    GIT_TAG        origin/main
-    GIT_SHALLOW TRUE
-  )
-
-  FetchContent_MakeAvailable(RxCpp)
-
-  set_target_properties(rxcpp PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES $<TARGET_PROPERTY:rxcpp,INTERFACE_INCLUDE_DIRECTORIES>)
-  set_target_properties(rxcpp PROPERTIES CXX_CLANG_TIDY "")
-  set_target_properties(rxcpp PROPERTIES CXX_CPPCHECK "")
-  set_target_properties(rxcpp PROPERTIES FOLDER 3rdparty)
-
+  rpp_fetch_library(rxcpp https://github.com/ReactiveX/RxCpp.git main)
 endif()
 
-# ===================== Snitch ===================
+# ===================== Tests ===================
 if (RPP_BUILD_TESTS)
-  Include(FetchContent)
-
-  set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Build SHARED libraries")
-
-  FetchContent_Declare(snitch
-      GIT_REPOSITORY https://github.com/cschreib/snitch.git
-      GIT_TAG        main
-      GIT_SHALLOW TRUE
-    )
-  FetchContent_MakeAvailable(snitch)
-
-  target_compile_options(snitch PRIVATE "-w")
-  set_target_properties(snitch PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES $<TARGET_PROPERTY:snitch,INTERFACE_INCLUDE_DIRECTORIES>)
-  set_target_properties(snitch PROPERTIES CXX_CLANG_TIDY "")
-  set_target_properties(snitch PROPERTIES CXX_CPPCHECK "")
-  set_target_properties(snitch PROPERTIES FOLDER 3rdparty)
-
+  rpp_fetch_library(Catch2 https://github.com/catchorg/Catch2.git v3.6.0)
+  rpp_fetch_library(trompeloeil https://github.com/rollbear/trompeloeil.git main)
 endif()
 
 
 # ==================== Nanobench =================
 if (RPP_BUILD_BENCHMARKS)
-  Include(FetchContent)
-
-  FetchContent_Declare(nanobench
-      GIT_REPOSITORY https://github.com/martinus/nanobench.git
-      GIT_TAG        master
-      GIT_SHALLOW    TRUE
-    )
-  FetchContent_MakeAvailable(nanobench)
-
-  target_compile_options(nanobench PRIVATE "-w")
-  set_target_properties(nanobench PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES $<TARGET_PROPERTY:nanobench,INTERFACE_INCLUDE_DIRECTORIES>)
-  set_target_properties(nanobench PROPERTIES CXX_CLANG_TIDY "")
-  set_target_properties(nanobench PROPERTIES CXX_CPPCHECK "")
-  set_target_properties(nanobench PROPERTIES FOLDER 3rdparty)
-
+  rpp_fetch_library(nanobench https://github.com/martinus/nanobench.git master)
 endif()

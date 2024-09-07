@@ -49,6 +49,7 @@
 #include <rpp/operators/debounce.hpp>
 #include <rpp/operators/distinct.hpp>
 #include <rpp/operators/distinct_until_changed.hpp>
+#include <rpp/operators/element_at.hpp>
 #include <rpp/operators/filter.hpp>
 #include <rpp/operators/first.hpp>
 #include <rpp/operators/last.hpp>
@@ -128,3 +129,5 @@
  */
 
 #include <rpp/operators/on_error_resume_next.hpp>
+#include <rpp/operators/retry.hpp>
+#include <rpp/operators/retry_when.hpp>

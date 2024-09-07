@@ -8,7 +8,8 @@
 // Project home: https://github.com/victimsnino/ReactivePlusPlus
 //
 
-#include <snitch/snitch.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <rpp/observers/mock_observer.hpp>
 #include <rpp/operators/delay.hpp>
@@ -20,12 +21,11 @@
 #include <rpp/sources/never.hpp>
 
 #include "disposable_observable.hpp"
-#include "snitch_logging.hpp"
 
 
 TEST_CASE("timeout subscribes to passed observable in case of reaching timeout")
 {
-    auto       scheduler = test_scheduler{};
+    auto       scheduler = rpp::schedulers::test_scheduler{};
     auto       mock      = mock_observer_strategy<int>{};
     const auto now       = scheduler.now();
 
@@ -154,7 +154,23 @@ TEST_CASE("timeout handles current_thread scheduling")
     CHECK(mock.get_on_completed_count() == 1);
 }
 
+TEST_CASE("timeout handles exception from fallback")
+{
+    auto mock = mock_observer_strategy<int>{};
+
+    rpp::source::never<int>()
+        | rpp::operators::timeout(std::chrono::seconds{1}, rpp::source::create<int>([](const auto&) {
+                                      throw 1;
+                                  }),
+                                  rpp::schedulers::current_thread{})
+        | rpp::operators::subscribe(mock);
+
+    CHECK(mock.get_received_values() == std::vector<int>{});
+    CHECK(mock.get_on_error_count() == 1);
+    CHECK(mock.get_on_completed_count() == 0);
+}
+
 TEST_CASE("timeout satisfies disposable contracts")
 {
-    test_operator_with_disposable<int>(rpp::ops::timeout(std::chrono::seconds{10000000}, test_scheduler{}));
+    test_operator_with_disposable<int>(rpp::ops::timeout(std::chrono::seconds{10000000}, rpp::schedulers::test_scheduler{}));
 }

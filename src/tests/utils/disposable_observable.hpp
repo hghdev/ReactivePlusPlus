@@ -10,7 +10,8 @@
 
 #pragma once
 
-#include <snitch/snitch.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <rpp/disposables/composite_disposable.hpp>
 #include <rpp/observers/dynamic_observer.hpp>
@@ -96,6 +97,26 @@ void test_operator_over_observable_with_disposable(auto&& op)
 
         observer_disposable.dispose();
         CHECK(observable_disposable.is_disposed());
+    }
+
+    SECTION("operator disposes disposable on_error")
+    {
+        op(rpp::source::create<T>([](auto&& obs) {
+            const auto d = rpp::composite_disposable_wrapper::make();
+            obs.set_upstream(d);
+            obs.on_error({});
+            CHECK(d.is_disposed());
+        })).subscribe([](const auto&) {}, [](const std::exception_ptr&) {});
+    }
+
+    SECTION("operator disposes disposable on_completed")
+    {
+        op(rpp::source::create<T>([](auto&& obs) {
+            const auto d = rpp::composite_disposable_wrapper::make();
+            obs.set_upstream(d);
+            obs.on_completed();
+            CHECK(d.is_disposed());
+        })).subscribe([](const auto&) {}, [](const std::exception_ptr&) {});
     }
 
     SECTION("set_upstream with fixed_disposable_strategy_selector<1>")

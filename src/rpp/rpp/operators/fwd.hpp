@@ -45,6 +45,8 @@ namespace rpp::operators
         requires (!utils::is_not_template_callable<EqualityFn> || std::same_as<bool, std::invoke_result_t<EqualityFn, rpp::utils::convertible_to_any, rpp::utils::convertible_to_any>>)
     auto distinct_until_changed(EqualityFn&& equality_fn = {});
 
+    auto element_at(size_t index);
+
     auto first();
 
     template<typename Fn>
@@ -104,6 +106,10 @@ namespace rpp::operators
 
     auto repeat();
 
+    auto retry(size_t count);
+
+    auto retry();
+
     template<typename InitialValue, typename Fn>
         requires (!utils::is_not_template_callable<Fn> || std::same_as<std::decay_t<InitialValue>, std::invoke_result_t<Fn, std::decay_t<InitialValue> &&, rpp::utils::convertible_to_any>>)
     auto scan(InitialValue&& initial_value, Fn&& accumulator);
@@ -150,6 +156,7 @@ namespace rpp::operators
     auto take_until(TObservable&& until_observable);
 
     template<std::invocable<const std::exception_ptr&> OnError = rpp::utils::empty_function_t<std::exception_ptr>>
+        requires utils::is_not_template_callable<OnError>
     auto tap(OnError&& on_error);
 
     template<std::invocable<> OnCompleted = rpp::utils::empty_function_t<>>
@@ -163,6 +170,7 @@ namespace rpp::operators
     template<typename OnNext                                       = rpp::utils::empty_function_any_t,
              std::invocable<const std::exception_ptr&> OnError     = rpp::utils::empty_function_t<std::exception_ptr>,
              std::invocable<>                          OnCompleted = rpp::utils::empty_function_t<>>
+        requires utils::is_not_template_callable<OnError>
     auto tap(OnNext&&      on_next      = {},
              OnError&&     on_error     = {},
              OnCompleted&& on_completed = {});
@@ -179,6 +187,10 @@ namespace rpp::operators
     template<typename Selector>
         requires rpp::constraint::observable<std::invoke_result_t<Selector, std::exception_ptr>>
     auto on_error_resume_next(Selector&& selector);
+
+    template<typename Notifier>
+        requires rpp::constraint::observable<std::invoke_result_t<Notifier, std::exception_ptr>>
+    auto retry_when(Notifier&& notifier);
 
     template<typename TSelector, rpp::constraint::observable TObservable, rpp::constraint::observable... TObservables>
         requires (!rpp::constraint::observable<TSelector> && (!utils::is_not_template_callable<TSelector> || std::invocable<TSelector, rpp::utils::convertible_to_any, utils::extract_observable_type_t<TObservable>, utils::extract_observable_type_t<TObservables>...>))

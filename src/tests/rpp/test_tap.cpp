@@ -8,7 +8,8 @@
 // Project home: https://github.com/victimsnino/ReactivePlusPlus
 //
 
-#include <snitch/snitch.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <rpp/observers/mock_observer.hpp>
 #include <rpp/operators/tap.hpp>
@@ -72,6 +73,20 @@ TEMPLATE_TEST_CASE("tap observes emissions and doesn't modify them", "", rpp::me
 
             CHECK(on_next_invoked == mock.get_total_on_next_count());
             CHECK(on_completed_invoked == mock.get_on_completed_count());
+        }
+
+        SECTION("pass on_next callback with auto argument")
+        {
+            size_t on_next_invoked = 0;
+
+            obs | rpp::ops::tap([&](const auto&) { ++on_next_invoked; })
+                | rpp::ops::subscribe(mock);
+
+            CHECK(mock.get_received_values() == std::vector{1, 2, 3});
+            CHECK(mock.get_on_error_count() == 0);
+            CHECK(mock.get_on_completed_count() == 1);
+
+            CHECK(on_next_invoked == mock.get_total_on_next_count());
         }
     }
 }
