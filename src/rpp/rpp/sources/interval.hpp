@@ -29,7 +29,7 @@ namespace rpp::details
     struct interval_strategy
     {
         using value_type                   = size_t;
-        using expected_disposable_strategy = rpp::details::observables::bool_disposable_strategy_selector;
+        using optimal_disposables_strategy = rpp::details::observables::fixed_disposables_strategy<0>;
 
         RPP_NO_UNIQUE_ADDRESS TScheduler scheduler;
         TimePointOrDuration              initial;

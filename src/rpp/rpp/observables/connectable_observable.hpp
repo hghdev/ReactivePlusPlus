@@ -35,7 +35,7 @@ namespace rpp::details
         std::shared_ptr<state_t> m_state = std::make_shared<state_t>();
 
         using value_type                   = rpp::utils::extract_observable_type_t<OriginalObservable>;
-        using expected_disposable_strategy = typename rpp::details::observables::deduce_disposable_strategy_t<rpp::connectable_observable<OriginalObservable, Subject>>::template add<1>;
+        using optimal_disposables_strategy = typename rpp::connectable_observable<OriginalObservable, Subject>::optimal_disposables_strategy::template add<1>;
 
         template<constraint::observer_strategy<value_type> Strategy>
         void subscribe(observer<value_type, Strategy>&& obs) const

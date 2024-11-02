@@ -19,7 +19,7 @@ namespace rpp::details
     struct error_strategy
     {
         using value_type                   = Type;
-        using expected_disposable_strategy = rpp::details::observables::bool_disposable_strategy_selector;
+        using optimal_disposables_strategy = rpp::details::observables::fixed_disposables_strategy<0>;
 
         std::exception_ptr err{};
 

@@ -19,7 +19,7 @@
 
 namespace rpp::operators::details
 {
-    template<rpp::constraint::observer TObserver, rpp::constraint::observable TFallbackObservable, rpp::details::disposables::constraint::disposable_container Container>
+    template<rpp::constraint::observer TObserver, rpp::constraint::observable TFallbackObservable, rpp::details::disposables::constraint::disposables_container Container>
     class timeout_disposable final : public rpp::composite_disposable_impl<Container>
     {
     public:
@@ -48,7 +48,7 @@ namespace rpp::operators::details
         RPP_NO_UNIQUE_ADDRESS const TFallbackObservable m_fallback;
     };
 
-    template<rpp::constraint::observer TObserver, rpp::constraint::observable TFallbackObservable, rpp::details::disposables::constraint::disposable_container Container>
+    template<rpp::constraint::observer TObserver, rpp::constraint::observable TFallbackObservable, rpp::details::disposables::constraint::disposables_container Container>
     struct timeout_disposable_wrapper
     {
         std::shared_ptr<timeout_disposable<TObserver, TFallbackObservable, Container>> disposable;
@@ -61,10 +61,10 @@ namespace rpp::operators::details
         }
     };
 
-    template<rpp::constraint::observer TObserver, rpp::constraint::observable TFallbackObservable, rpp::details::disposables::constraint::disposable_container Container, rpp::schedulers::constraint::scheduler TScheduler>
+    template<rpp::constraint::observer TObserver, rpp::constraint::observable TFallbackObservable, rpp::details::disposables::constraint::disposables_container Container, rpp::schedulers::constraint::scheduler TScheduler>
     struct timeout_observer_strategy
     {
-        using preferred_disposable_strategy = rpp::details::observers::none_disposable_strategy;
+        static constexpr auto preferred_disposables_mode = rpp::details::observers::disposables_mode::None;
 
         std::shared_ptr<timeout_disposable<TObserver, TFallbackObservable, Container>> disposable;
 
@@ -114,15 +114,18 @@ namespace rpp::operators::details
             constexpr static bool own_current_queue = true;
         };
 
+        template<rpp::details::observables::constraint::disposables_strategy Prev>
+        using updated_optimal_disposables_strategy = rpp::details::observables::fixed_disposables_strategy<1>;
+
         rpp::schedulers::duration                 period;
         RPP_NO_UNIQUE_ADDRESS TFallbackObservable fallback;
         RPP_NO_UNIQUE_ADDRESS TScheduler          scheduler;
 
-        template<rpp::constraint::decayed_type Type, rpp::details::observables::constraint::disposable_strategy DisposableStrategy, rpp::constraint::observer Observer>
-        auto lift_with_disposable_strategy(Observer&& observer) const
+        template<rpp::constraint::decayed_type Type, rpp::details::observables::constraint::disposables_strategy DisposableStrategy, rpp::constraint::observer Observer>
+        auto lift_with_disposables_strategy(Observer&& observer) const
         {
             using worker_t  = rpp::schedulers::utils::get_worker_t<TScheduler>;
-            using container = typename DisposableStrategy::disposable_container;
+            using container = typename DisposableStrategy::disposables_container;
 
             const auto timeout = worker_t::now() + period;
 
@@ -163,14 +166,17 @@ namespace rpp::operators::details
             constexpr static bool own_current_queue = true;
         };
 
+        template<rpp::details::observables::constraint::disposables_strategy Prev>
+        using updated_optimal_disposables_strategy = typename timeout_t<rpp::error_observable<int>, TScheduler>::template updated_optimal_disposables_strategy<Prev>;
+
         rpp::schedulers::duration        period;
         RPP_NO_UNIQUE_ADDRESS TScheduler scheduler;
 
-        template<rpp::constraint::decayed_type Type, rpp::details::observables::constraint::disposable_strategy DisposableStrategy, rpp::constraint::observer Observer>
-        auto lift_with_disposable_strategy(Observer&& observer) const
+        template<rpp::constraint::decayed_type Type, rpp::details::observables::constraint::disposables_strategy DisposableStrategy, rpp::constraint::observer Observer>
+        auto lift_with_disposables_strategy(Observer&& observer) const
         {
             return timeout_t<rpp::error_observable<Type>, TScheduler>{period, rpp::source::error<rpp::utils::extract_observer_type_t<Observer>>(std::make_exception_ptr(rpp::utils::timeout_reached{"Timeout reached"})), scheduler}
-                .template lift_with_disposable_strategy<Type, DisposableStrategy>(std::forward<Observer>(observer));
+                .template lift_with_disposables_strategy<Type, DisposableStrategy>(std::forward<Observer>(observer));
         }
     };
 } // namespace rpp::operators::details

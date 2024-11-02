@@ -23,7 +23,7 @@ namespace rpp::operators::details
     class take_last_observer_strategy
     {
     public:
-        using preferred_disposable_strategy = rpp::details::observers::none_disposable_strategy;
+        static constexpr auto preferred_disposables_mode = rpp::details::observers::disposables_mode::None;
 
         take_last_observer_strategy(TObserver&& observer, size_t count)
             : m_observer{std::move(observer)}
@@ -93,8 +93,8 @@ namespace rpp::operators::details
             using observer_strategy = take_last_observer_strategy<TObserver>;
         };
 
-        template<rpp::details::observables::constraint::disposable_strategy Prev>
-        using updated_disposable_strategy = Prev;
+        template<rpp::details::observables::constraint::disposables_strategy Prev>
+        using updated_optimal_disposables_strategy = Prev;
     };
 } // namespace rpp::operators::details
 

@@ -65,6 +65,8 @@ namespace rppgrpc::details
 
         struct observer_strategy
         {
+            static constexpr auto preferred_disposables_mode = rpp::details::observers::disposables_mode::Auto;
+
             std::reference_wrapper<base_writer> owner{};
 
             template<rpp::constraint::decayed_same_as<TData> T>

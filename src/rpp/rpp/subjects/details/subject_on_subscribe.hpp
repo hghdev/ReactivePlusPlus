@@ -19,7 +19,7 @@ namespace rpp::subjects::details
     struct subject_on_subscribe_strategy
     {
         using value_type                   = Type;
-        using expected_disposable_strategy = DisposableStrategy;
+        using optimal_disposables_strategy = DisposableStrategy;
 
         RPP_NO_UNIQUE_ADDRESS OnSubscribe subscribe;
     };

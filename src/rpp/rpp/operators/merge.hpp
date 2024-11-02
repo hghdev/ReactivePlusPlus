@@ -51,6 +51,8 @@ namespace rpp::operators::details
     template<rpp::constraint::observer TObserver>
     struct merge_observer_base_strategy
     {
+        static constexpr auto preferred_disposables_mode = rpp::details::observers::disposables_mode::Auto;
+
         merge_observer_base_strategy(std::shared_ptr<merge_state<TObserver>>&& state)
             : m_state{std::move(state)}
         {
@@ -143,8 +145,8 @@ namespace rpp::operators::details
             using observer_strategy = merge_observer_strategy<std::decay_t<TObserver>>;
         };
 
-        template<rpp::details::observables::constraint::disposable_strategy Prev>
-        using updated_disposable_strategy = rpp::details::observables::fixed_disposable_strategy_selector<1>;
+        template<rpp::details::observables::constraint::disposables_strategy Prev>
+        using updated_optimal_disposables_strategy = rpp::details::observables::fixed_disposables_strategy<1>;
     };
 
     template<rpp::constraint::observable... TObservables>
@@ -160,8 +162,8 @@ namespace rpp::operators::details
             using result_type = T;
         };
 
-        template<rpp::details::observables::constraint::disposable_strategy Prev>
-        using updated_disposable_strategy = rpp::details::observables::fixed_disposable_strategy_selector<1>;
+        template<rpp::details::observables::constraint::disposables_strategy Prev>
+        using updated_optimal_disposables_strategy = rpp::details::observables::fixed_disposables_strategy<1>;
 
         template<rpp::constraint::observer Observer, typename... Strategies>
         void subscribe(Observer&& observer, const rpp::details::observables::chain<Strategies...>& observable_strategy) const

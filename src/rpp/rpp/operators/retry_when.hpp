@@ -50,7 +50,7 @@ namespace rpp::operators::details
              typename TNotifier>
     struct retry_when_impl_inner_strategy
     {
-        using preferred_disposable_strategy = rpp::details::observers::none_disposable_strategy;
+        static constexpr auto preferred_disposables_mode = rpp::details::observers::disposables_mode::None;
 
         std::shared_ptr<retry_when_state<TObserver, TObservable, TNotifier>> state;
         mutable bool                                                         locally_disposed{};
@@ -89,7 +89,7 @@ namespace rpp::operators::details
              typename TNotifier>
     struct retry_when_impl_strategy
     {
-        using preferred_disposable_strategy = rpp::details::observers::none_disposable_strategy;
+        static constexpr auto preferred_disposables_mode = rpp::details::observers::disposables_mode::None;
 
         std::shared_ptr<retry_when_state<TObserver, TObservable, TNotifier>> state;
 
@@ -154,8 +154,8 @@ namespace rpp::operators::details
             using result_type = T;
         };
 
-        template<rpp::details::observables::constraint::disposable_strategy Prev>
-        using updated_disposable_strategy = rpp::details::observables::fixed_disposable_strategy_selector<1>;
+        template<rpp::details::observables::constraint::disposables_strategy Prev>
+        using updated_optimal_disposables_strategy = rpp::details::observables::fixed_disposables_strategy<1>;
 
         template<rpp::constraint::observer TObserver, typename TObservable>
         void subscribe(TObserver&& observer, TObservable&& observable) const
