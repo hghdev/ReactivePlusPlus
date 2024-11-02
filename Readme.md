@@ -6,9 +6,9 @@
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=victimsnino_ReactivePlusPlus&metric=sqale_rating&branch=v2)](https://sonarcloud.io/summary/new_code?id=victimsnino_ReactivePlusPlus&branch=v2)
 ![GitHub commit activity (v2)](https://img.shields.io/github/commit-activity/m/victimsnino/ReactivePlusPlus/v2)
 
-[![User guide](https://img.shields.io/badge/link-User_guide-green)](https://victimsnino.github.io/ReactivePlusPlus/v2/docs/html/index.html)
-[![API Reference](https://img.shields.io/badge/link-API_Reference-green)](https://victimsnino.github.io/ReactivePlusPlus/v2/docs/html/topics.html)
-[![Benchmarks](https://img.shields.io/badge/link-Benchmarks-green)](https://victimsnino.github.io/ReactivePlusPlus/v2/benchmark)
+[![User guide](https://img.shields.io/badge/User_guide-link-green)](https://victimsnino.github.io/ReactivePlusPlus/v2/docs/html/index.html)
+[![API Reference](https://img.shields.io/badge/API_Reference-link-green)](https://victimsnino.github.io/ReactivePlusPlus/v2/docs/html/topics.html)
+[![Benchmarks](https://img.shields.io/badge/Benchmarks-link-green)](https://victimsnino.github.io/ReactivePlusPlus/v2/benchmark)
 
 [![Join the chat in Discord: https://discord.gg/KWMR3RNkVz](https://img.shields.io/badge/Discord-Chat!-brightgreen.svg)](https://discord.gg/KWMR3RNkVz)
 [![Conan Center](https://img.shields.io/conan/v/reactiveplusplus)](https://conan.io/center/recipes/reactiveplusplus)
