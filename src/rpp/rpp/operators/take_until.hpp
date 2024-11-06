@@ -13,26 +13,26 @@
 #include <rpp/operators/fwd.hpp>
 
 #include <rpp/defs.hpp>
+#include <rpp/disposables/composite_disposable.hpp>
 #include <rpp/schedulers/current_thread.hpp>
 #include <rpp/utils/utils.hpp>
 
 namespace rpp::operators::details
 {
     template<rpp::constraint::observer TObserver>
-    class take_until_state final
+    class take_until_disposable final : public rpp::composite_disposable
     {
     public:
-        take_until_state(TObserver&& observer)
+        take_until_disposable(TObserver&& observer)
             : m_observer_with_mutex(std::move(observer))
         {
         }
 
-        take_until_state(const TObserver& observer)
+        take_until_disposable(const TObserver& observer)
             : m_observer_with_mutex(observer)
         {
         }
 
-        void stop() { m_stopped = true; }
         bool is_stopped() const { return m_stopped; }
         bool stop_return_was_stopped() { return m_stopped.exchange(true); }
 
@@ -46,9 +46,9 @@ namespace rpp::operators::details
     template<rpp::constraint::observer TObserver>
     struct take_until_observer_strategy_base
     {
-        static constexpr auto preferred_disposables_mode = rpp::details::observers::disposables_mode::None;
+        static constexpr auto preferred_disposables_mode = rpp::details::observers::disposables_mode::Auto;
 
-        std::shared_ptr<take_until_state<TObserver>> state;
+        std::shared_ptr<take_until_disposable<TObserver>> state;
 
         void on_error(const std::exception_ptr& err) const
         {
@@ -62,9 +62,9 @@ namespace rpp::operators::details
                 state->get_observer()->on_completed();
         }
 
-        void set_upstream(const disposable_wrapper& d) { state->get_observer()->set_upstream(d); }
+        void set_upstream(const disposable_wrapper& d) { state->add(d); }
 
-        bool is_disposed() const { return state->get_observer()->is_disposed(); }
+        bool is_disposed() const { return state->is_disposed(); }
     };
 
     template<rpp::constraint::observer TObserver>
@@ -103,12 +103,14 @@ namespace rpp::operators::details
         };
 
         template<rpp::details::observables::constraint::disposables_strategy Prev>
-        using updated_optimal_disposables_strategy = rpp::details::observables::default_disposables_strategy;
+        using updated_optimal_disposables_strategy = rpp::details::observables::fixed_disposables_strategy<1>;
 
         template<rpp::constraint::decayed_type Type, rpp::constraint::observer Observer>
         auto lift(Observer&& observer) const
         {
-            auto ptr = std::make_shared<take_until_state<std::decay_t<Observer>>>(std::forward<Observer>(observer));
+            const auto d   = disposable_wrapper_impl<take_until_disposable<std::decay_t<Observer>>>::make(std::forward<Observer>(observer));
+            auto       ptr = d.lock();
+            ptr->get_observer()->set_upstream(d.as_weak());
 
             observable.subscribe(take_until_throttle_observer_strategy<std::decay_t<Observer>>{ptr});
             return rpp::observer<Type, take_until_observer_strategy<std::decay_t<Observer>>>(std::move(ptr));
