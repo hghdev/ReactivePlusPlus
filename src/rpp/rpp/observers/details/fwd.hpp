@@ -74,6 +74,12 @@ namespace rpp::details::observers
         {
             static_assert(mode == disposables_mode::Auto || mode == disposables_mode::None || mode == disposables_mode::External || mode == disposables_mode::Boolean);
 
+#if defined(RPP_DISABLE_DISPOSABLES_OPTIMIZATION) and RPP_DISABLE_DISPOSABLES_OPTIMIZATION
+            if constexpr (mode == disposables_mode::External)
+                return static_cast<composite_disposable_wrapper*>(nullptr);
+            else
+                return static_cast<default_disposables_strategy*>(nullptr);
+#else
             if constexpr (mode == disposables_mode::Auto)
                 return static_cast<default_disposables_strategy*>(nullptr);
             else if constexpr (mode == disposables_mode::None)
@@ -84,6 +90,7 @@ namespace rpp::details::observers
                 return static_cast<boolean_disposables_strategy*>(nullptr);
             else
                 return static_cast<void*>(nullptr);
+#endif
         }
     } // namespace details
 
